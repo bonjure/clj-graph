@@ -1,7 +1,7 @@
 (ns clj-graph.test
   (:use clojure.test
         clj-graph)
-  (:import [clj-graph DirectedGraph]))
+  (:import [clj_graph DirectedGraph]))
 
 (def empty-graph (DirectedGraph. #{} {}))
 
