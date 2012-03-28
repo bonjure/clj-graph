@@ -1,7 +1,6 @@
 (ns clj-graph.test
-  (use clojure.test
-       clj-graph))
-
+  (:use clojure.test clj-graph)
+  )
 
 (def empty-graph (struct directed-graph #{} {}))
 
