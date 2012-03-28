@@ -1,11 +1,12 @@
 (ns clj-graph.test
-  (:use clojure.test clj-graph)
-  )
+  (:use clojure.test
+        clj-graph)
+  (:import [clj-graph DirectedGraph]))
 
-(def empty-graph (struct directed-graph #{} {}))
+(def empty-graph (DirectedGraph. #{} {}))
 
 (def test-graph-1
-     (struct directed-graph
+     (DirectedGraph.
              #{:a :b :c :d :e}
              {:a #{:b :c}
               :b #{:a :c}
@@ -15,7 +16,7 @@
 
 (deftest test-reverse-graph
   (is (= (reverse-graph test-graph-1)
-         (struct directed-graph
+         (DirectedGraph.
                  #{:a :b :c :d :e}
                  {:c #{:b :a}
                   :e #{:c}
@@ -38,7 +39,7 @@
 
 
 (def test-graph-2
-     (struct directed-graph
+     (DirectedGraph.
              #{:a :b :c :d :e :f :g :h :i :j}
              {:a #{:b :c}
               :b #{:a :c}
@@ -110,7 +111,7 @@
 
 
 (def test-graph-3
-     (struct directed-graph
+     (DirectedGraph.
              #{:a :b :c :d :e :f}
              {:a #{:b}
               :b #{:c}
@@ -120,7 +121,7 @@
               :f #{}}))
 
 (def test-graph-4
-     (struct directed-graph
+     (DirectedGraph.
              #{:a :b :c :d :e :f :g :h}
              {:a #{}
               :b #{:a}
@@ -132,7 +133,7 @@
               :h #{:f}}))
 
 (def test-graph-5
-     (struct directed-graph
+     (DirectedGraph.
              #{:a :b :c :d :e :f :g :h}
              {:a #{}
               :b #{}
