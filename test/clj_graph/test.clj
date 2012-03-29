@@ -29,12 +29,12 @@
 
 (deftest test-add-loops
   (let [tg1 (add-loops test-graph-1)]
-    (is (every? (fn [n] (contains? (get-neighbors tg1 n) n)) (:nodes tg1))))
+    (is (every? (fn [n] (contains? (neighbors tg1 n) n)) (nodes tg1))))
   (is (= (add-loops empty-graph) empty-graph)))
 
 (deftest test-remove-loops
   (let [tg1 (remove-loops (add-loops test-graph-1))]
-    (is (not-any? (fn [n] (contains? (get-neighbors tg1 n) n)) (:nodes tg1))))
+    (is (not-any? (fn [n] (contains? (neighbors tg1 n) n)) (nodes tg1))))
   (is (= (remove-loops empty-graph) empty-graph)))
 
 
@@ -60,9 +60,9 @@
 (deftest test-transitive-closure
   (let [tc-1 (transitive-closure test-graph-1)
         tc-2 (transitive-closure test-graph-2)
-        get (fn [n] (set (get-neighbors tc-2 n)))]
+        get (fn [n] (set (neighbors tc-2 n)))]
     (is (every? #(= #{:a :b :c :d :e} (set %))
-                (map (partial get-neighbors tc-1) (:nodes tc-1))))
+                (map (partial neighbors tc-1) (nodes tc-1))))
     (is (= (get :a) #{:a :b :c :d :e}))
     (is (= (get :h) #{}))
     (is (= (get :j) #{:i :j}))
@@ -83,14 +83,14 @@
 (deftest test-component-graph
   (let [cg (component-graph test-graph-2)
         ecg (component-graph empty-graph)]
-    (is (= (:nodes cg) (set (scc test-graph-2))))
-    (is (= (get-neighbors cg #{:a :b :c :d :e})
+    (is (= (nodes cg) (set (scc test-graph-2))))
+    (is (= (neighbors cg #{:a :b :c :d :e})
            #{#{:a :b :c :d :e}}))
-    (is (= (get-neighbors cg #{:g})
+    (is (= (neighbors cg #{:g})
            #{#{:a :b :c :d :e} #{:f}}))
-    (is (= (get-neighbors cg #{:i :j})
+    (is (= (neighbors cg #{:i :j})
            #{#{:i :j}}))
-    (is (= (get-neighbors cg #{:h})
+    (is (= (neighbors cg #{:h})
            #{}))
     (is (= (apply max (map count (self-recursive-sets cg))) 1))
     (is (= ecg empty-graph))))

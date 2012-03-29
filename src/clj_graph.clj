@@ -20,14 +20,22 @@
   clj-graph
   (use [clojure.set :only (union)]))
 
+(defprotocol Graph
+  (nodes [g])
+  (neighbors [g n]))
 
-(defrecord DirectedGraph [nodes neighbors])
+;; A graph built from a collection of nodes and a function that
+;; returns the neighbors of a given node
+(defrecord DirectedGraph [nodes neighbor-fn]
+  Graph
+  (nodes [g] nodes)
+  (neighbors [g n] (neighbor-fn n)))
 
 (defn get-neighbors
-  "Get the neighbors of a node."
+  "Gets neighbor nodes of a node n in a graph. This fn exists for
+  backwards compatibility. Use the protocol functions nodes instead."
   [g n]
-  ((:neighbors g) n))
-
+  (neighbors g n))
 
 ;; Graph Modification
 
@@ -36,28 +44,28 @@
    order of the edges reversed."
   [g]
   (let [op (fn [rna idx]
-             (let [ns (get-neighbors g idx)
+             (let [ns (neighbors g idx)
                    am (fn [m val]
                         (assoc m val (conj (get m val #{}) idx)))]
                (reduce am rna ns)))
-        rn (reduce op {} (:nodes g))]
-    (DirectedGraph. (:nodes g) rn)))
+        rn (reduce op {} (nodes g))]
+    (DirectedGraph. (nodes g) rn)))
 
 (defn add-loops
   "For each node n, add the edge n->n if not already present."
   [g]
   (DirectedGraph.
-          (:nodes g)
+          (nodes g)
           (into {} (map (fn [n]
-                          [n (conj (set (get-neighbors g n)) n)]) (:nodes g)))))
+                          [n (conj (set (neighbors g n)) n)]) (nodes g)))))
 
 (defn remove-loops
   "For each node n, remove any edges n->n."
   [g]
   (DirectedGraph.
-          (:nodes g)
+          (nodes g)
           (into {} (map (fn [n]
-                          [n (disj (set (get-neighbors g n)) n)]) (:nodes g)))))
+                          [n (disj (set (neighbors g n)) n)]) (nodes g)))))
 
 
 ;; Graph Walk
@@ -73,7 +81,7 @@
                      n (first s)
                      ns (rest s)]
                  (when s
-                   (cons n (lazy-walk g (concat (get-neighbors g n) ns) (conj v n))))))))
+                   (cons n (lazy-walk g (concat (neighbors g n) ns) (conj v n))))))))
 
 (defn transitive-closure
   "Returns the transitive closure of a graph.  The neighbors are lazily computed.
@@ -85,10 +93,10 @@
    behavior, call (-> g transitive-closure add-loops)"
   [g]
   (let [nns (fn [n]
-              [n (delay (lazy-walk g (get-neighbors g n) #{}))])
-        nbs (into {} (map nns (:nodes g)))]
+              [n (delay (lazy-walk g (neighbors g n) #{}))])
+        nbs (into {} (map nns (nodes g)))]
     (DirectedGraph.
-            (:nodes g)
+            (nodes g)
             (fn [n] (force (nbs n))))))
 
 
@@ -101,7 +109,7 @@
     state
     (let [[v2 acc2] (reduce (fn [st nd] (post-ordered-visit g nd st))
                             [(conj visited n) acc]
-                            (get-neighbors g n))]
+                            (neighbors g n))]
       [v2 (conj acc2 n)])))
 
 (defn post-ordered-nodes
@@ -109,7 +117,7 @@
   [g]
   (fnext (reduce #(post-ordered-visit g %2 %1)
                  [#{} []]
-                 (:nodes g))))
+                 (nodes g))))
 
 (defn scc
   "Returns, as a sequence of sets, the strongly connected components
@@ -138,7 +146,7 @@
      (let [find-node-set (fn [n]
                            (some #(if (% n) % nil) sccs))
            find-neighbors (fn [ns]
-                            (let [nbs1 (map (partial get-neighbors g) ns)
+                            (let [nbs1 (map (partial neighbors g) ns)
                                   nbs2 (map set nbs1)
                                   nbs3 (apply union nbs2)]
                               (set (map find-node-set nbs3))))
@@ -150,7 +158,7 @@
   [g ns]
   (or (> (count ns) 1)
       (let [n (first ns)]
-        (some #(= % n) (get-neighbors g n)))))
+        (some #(= % n) (neighbors g n)))))
 
 (defn self-recursive-sets
   "Returns, as a sequence of sets, the components of a graph that are
@@ -193,11 +201,11 @@
   [g]
   (let [step (fn [d]
                (let [update (fn [n]
-                              (inc (apply max -1 (map d (get-neighbors g n)))))]
+                              (inc (apply max -1 (map d (neighbors g n)))))]
                  (into {} (map (fn [[k v]] [k (update k)]) d))))
-        counts (fixed-point (zipmap (:nodes g) (repeat 0))
+        counts (fixed-point (zipmap (nodes g) (repeat 0))
                             step
-                            (inc (count (:nodes g)))
+                            (inc (count (nodes g)))
                             =)]
     (fold-into-sets counts)))
 
@@ -208,16 +216,16 @@
    depends on node b (meaning an edge a->b exists) in the second
    graph, node a must be equal or later in the sequence."
   [g1 g2]
-  (assert (= (-> g1 :nodes set) (-> g2 :nodes set)))
+  (assert (= (set (nodes g1)) (set (nodes g2))))
   (let [step (fn [d]
                (let [update (fn [n]
                               (max (inc (apply max -1
-                                               (map d (get-neighbors g1 n))))
-                                   (apply max -1 (map d (get-neighbors g2 n)))))]
+                                               (map d (neighbors g1 n))))
+                                   (apply max -1 (map d (neighbors g2 n)))))]
                  (into {} (map (fn [[k v]] [k (update k)]) d))))
-        counts (fixed-point (zipmap (:nodes g1) (repeat 0))
+        counts (fixed-point (zipmap (nodes g1) (repeat 0))
                             step
-                            (inc (count (:nodes g1)))
+                            (inc (count (nodes g1)))
                             =)]
     (fold-into-sets counts)))
 
